@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
-  --blue: #0346d0;
-  --deep-blue: #0635a1;
+  --blue: #1769aa;
+  --deep-blue: #104c7a;
   --red: #e34240;
   --ink: #101820;
   --paper: #f5f4ef;
@@ -37,7 +37,7 @@ a { color: inherit; text-decoration: none; }
 h1,h2,p { margin-top: 0; }
 h1,h2 { font-family: var(--display); font-weight: 800; letter-spacing: 0; }
 h1 { max-width: 650px; margin: 0; font-size: clamp(76px, 12vw, 166px); line-height: .78; }
-h1 span { color: #80aaff; }
+h1 span { color: #9ccbff; }
 .hero-copy { max-width: 290px; margin: 29px 0 0; color: #d5dde3; font-size: 13px; line-height: 1.7; }
 .round-link { width: 88px; height: 88px; margin-top: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; border: 1px solid rgba(255,255,255,.65); border-radius: 50%; font-size: 8px; font-weight: 700; letter-spacing: .6px; transition: background .2s, color .2s; }
 .round-link:hover { color: var(--ink); background: white; }
