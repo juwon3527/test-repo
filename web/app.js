@@ -86,3 +86,23 @@ mainNav.addEventListener("click", (event) => {
 });
 
 loadMatchCentre();
+async function loadAccount() {
+  const account = document.querySelector("#header-account");
+  try {
+    const response = await fetch("/api/session");
+    const data = await response.json();
+    if (!data.authenticated) return;
+    const signOut = makeElement("button", "header-account", "SIGN OUT");
+    signOut.type = "button";
+    signOut.prepend(makeElement("small", "", data.name.toUpperCase()));
+    signOut.addEventListener("click", async () => {
+      await fetch("/api/logout", { method: "POST" });
+      window.location.reload();
+    });
+    account.replaceWith(signOut);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+loadAccount();

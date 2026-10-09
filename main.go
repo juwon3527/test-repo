@@ -13,15 +13,15 @@ import (
 var webFiles embed.FS
 
 type Match struct {
-	Home     string `json:"home"`
-	Away     string `json:"away"`
-	HomeCode string `json:"homeCode"`
-	AwayCode string `json:"awayCode"`
-	HomeScore int   `json:"homeScore"`
-	AwayScore int   `json:"awayScore"`
-	Status   string `json:"status"`
-	Venue    string `json:"venue"`
-	Kickoff  string `json:"kickoff"`
+	Home      string `json:"home"`
+	Away      string `json:"away"`
+	HomeCode  string `json:"homeCode"`
+	AwayCode  string `json:"awayCode"`
+	HomeScore int    `json:"homeScore"`
+	AwayScore int    `json:"awayScore"`
+	Status    string `json:"status"`
+	Venue     string `json:"venue"`
+	Kickoff   string `json:"kickoff"`
 }
 
 type Fixture struct {
@@ -80,6 +80,7 @@ func newServer() http.Handler {
 			http.Error(w, "could not encode match centre", http.StatusInternalServerError)
 		}
 	})
+	newAuth().register(mux)
 	mux.Handle("GET /", http.FileServer(http.FS(content)))
 	return securityHeaders(mux)
 }
