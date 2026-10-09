@@ -18,6 +18,21 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: thebridge_test
+          MYSQL_ROOT_PASSWORD: test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -ptest"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      TEST_MYSQL_DSN: root:test@tcp(127.0.0.1:3306)/thebridge_test
     steps:
       - uses: actions/checkout@v4
 

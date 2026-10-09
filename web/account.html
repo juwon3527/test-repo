@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1769aa">
+  <title>Your account — The Bridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/account.js" defer></script>
+</head>
+<body class="login-body">
+  <div class="demo-ribbon"><span class="status-dot"></span> INDEPENDENT FAN SITE <span class="ribbon-divider">/</span> MEMBERS AREA</div>
+  <main class="login-layout">
+    <section class="login-visual" aria-hidden="true">
+      <div class="login-photo"></div>
+      <div class="hero-grid"></div>
+      <a class="wordmark login-wordmark" href="/" tabindex="-1"><span class="mark">TB</span><span>THE<br>BRIDGE</span></a>
+      <div class="login-visual-copy">
+        <p class="eyebrow"><span class="eyebrow-line"></span> ONE BADGE. ONE CITY.</p>
+        <p class="login-display">PUT A<br><span>FACE</span> TO IT.</p>
+      </div>
+      <div class="squad-number login-number">1905</div>
+    </section>
+
+    <section class="login-panel" aria-labelledby="account-title">
+      <a class="text-link login-back" href="/"><span aria-hidden="true">←</span> BACK TO THE BRIDGE</a>
+      <div class="login-card">
+        <p class="eyebrow dark-eyebrow">MEMBERS AREA</p>
+        <h1 id="account-title" class="login-title">YOUR ACCOUNT<span class="blue-period">.</span></h1>
+
+        <div class="account-profile">
+          <span class="avatar avatar-large" id="avatar" aria-hidden="true"></span>
+          <div>
+            <p class="account-name" id="account-name">…</p>
+            <p class="account-email" id="account-email"></p>
+          </div>
+        </div>
+
+        <form class="login-form" id="avatar-form" novalidate>
+          <div class="login-error" id="avatar-error" role="alert" hidden></div>
+          <p class="login-success" id="avatar-success" role="status" hidden>Profile photo updated.</p>
+          <label class="file-drop">
+            <input type="file" name="image" id="avatar-input" accept="image/jpeg,image/png,image/gif,image/webp">
+            <span class="file-drop-title" id="avatar-file-name">CHOOSE A PROFILE PHOTO</span>
+            <small>JPEG, PNG, GIF or WebP · up to 5 MB</small>
+          </label>
+          <button class="login-submit" type="submit" id="avatar-submit"><span id="avatar-submit-label">UPLOAD PHOTO</span> <span aria-hidden="true">↑</span></button>
+        </form>
+
+        <div class="login-actions account-actions">
+          <a class="login-secondary" href="/#gallery">FAN GALLERY</a>
+          <button class="login-secondary" type="button" id="sign-out">SIGN OUT</button>
+        </div>
+      </div>
+      <span class="footer-note login-footnote">FAN-MADE CONCEPT · NOT AFFILIATED WITH CHELSEA FC</span>
+    </section>
+  </main>
+</body>
+</html>

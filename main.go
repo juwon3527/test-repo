@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -67,7 +69,39 @@ func matchCentre() MatchCentre {
 	}
 }
 
-func newServer() http.Handler {
+// App holds the server's dependencies.
+type App struct {
+	store  Store
+	images ImageStore // nil when S3 isn't configured; uploads are then disabled
+}
+
+// newAppFromEnv connects to MySQL (MYSQL_DSN) and S3 (S3_BUCKET). Either may
+// be left unset for local development.
+func newAppFromEnv(ctx context.Context) (*App, error) {
+	app := &App{}
+	if dsn := os.Getenv("MYSQL_DSN"); dsn != "" {
+		store, err := openMySQL(ctx, dsn)
+		if err != nil {
+			return nil, err
+		}
+		app.store = store
+	} else {
+		log.Print("MYSQL_DSN is not set: using an in-memory store, so accounts and photos are lost on restart")
+		app.store = newMemoryStore()
+	}
+	if bucket := os.Getenv("S3_BUCKET"); bucket != "" {
+		images, err := newS3Images(ctx, bucket, os.Getenv("S3_ENDPOINT"), os.Getenv("S3_PUBLIC_URL"))
+		if err != nil {
+			return nil, err
+		}
+		app.images = images
+	} else {
+		log.Print("S3_BUCKET is not set: image uploads are disabled")
+	}
+	return app, nil
+}
+
+func newServer(app *App) http.Handler {
 	content, err := fs.Sub(webFiles, "web")
 	if err != nil {
 		panic(err)
@@ -80,9 +114,16 @@ func newServer() http.Handler {
 			http.Error(w, "could not encode match centre", http.StatusInternalServerError)
 		}
 	})
-	newAuth().register(mux)
+	mux.HandleFunc("POST /api/signup", app.handleSignup)
+	mux.HandleFunc("POST /api/login", app.handleLogin)
+	mux.HandleFunc("POST /api/logout", app.handleLogout)
+	mux.HandleFunc("GET /api/session", app.handleSession)
+	mux.HandleFunc("POST /api/account/avatar", app.handleAvatarUpload)
+	mux.HandleFunc("GET /api/gallery", app.handleGalleryList)
+	mux.HandleFunc("POST /api/gallery", app.handleGalleryUpload)
+	mux.HandleFunc("GET /media/{key...}", app.handleMedia)
 	mux.Handle("GET /", http.FileServer(http.FS(content)))
-	return securityHeaders(mux)
+	return securityHeaders(sameOrigin(mux))
 }
 
 func securityHeaders(next http.Handler) http.Handler {
@@ -94,9 +135,13 @@ func securityHeaders(next http.Handler) http.Handler {
 }
 
 func main() {
+	app, err := newAppFromEnv(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
 	server := &http.Server{
 		Addr:              ":8080",
-		Handler:           newServer(),
+		Handler:           newServer(app),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	log.Printf("The Bridge is running at http://localhost%s", server.Addr)

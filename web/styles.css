@@ -15,6 +15,7 @@
 html { scroll-behavior: smooth; }
 body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--body); }
 a { color: inherit; text-decoration: none; }
+[hidden] { display: none !important; }
 .demo-ribbon { height: 28px; display: flex; align-items: center; justify-content: center; gap: 9px; color: #fff; background: var(--deep-blue); font-size: 9px; font-weight: 700; letter-spacing: 1.25px; }
 .status-dot,.live-pip { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: #f0db58; }
 .ribbon-divider { opacity: .45; }
@@ -174,7 +175,6 @@ h2 { margin-bottom: 0; font-size: clamp(48px, 7vw, 74px); line-height: .9; }
 .header-actions { display: flex; align-items: center; gap: 18px; }
 .header-account { font-size: 10px; font-weight: 700; letter-spacing: 1.15px; background: none; border: 0; padding: 0; color: inherit; font-family: inherit; cursor: pointer; }
 .header-account:hover { color: var(--blue); }
-.header-account small { display: block; color: var(--muted); font-size: 8px; letter-spacing: 1px; }
 
 /* Login page */
 .login-body { min-height: 100vh; display: flex; flex-direction: column; }
@@ -215,10 +215,58 @@ h2 { margin-bottom: 0; font-size: clamp(48px, 7vw, 74px); line-height: .9; }
 .login-hint code { color: var(--ink); font-size: 11px; }
 .login-footnote { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: 1px; }
 
+.header-profile { display: inline-flex; align-items: center; gap: 9px; }
+
+/* Avatars */
+.avatar { width: 34px; height: 34px; flex: 0 0 auto; display: inline-grid; place-items: center; overflow: hidden; border-radius: 50%; color: white; background: var(--blue); font: 700 12px var(--display); letter-spacing: .5px; }
+.avatar img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.avatar-small { width: 30px; height: 30px; font-size: 11px; }
+.avatar-large { width: 76px; height: 76px; font-size: 26px; }
+
+/* Login / signup extras */
+.field-hint { color: var(--muted); font-size: 11px; }
+.login-switch { margin: 24px 0 0; color: var(--muted); font-size: 12px; }
+.login-switch a { color: var(--blue); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.login-success { margin: 0; padding: 12px 14px; border-left: 3px solid #2e8b57; color: #1e5c3a; background: #e3f2e9; font-size: 12px; font-weight: 600; }
+
+/* Account page */
+.account-profile { display: flex; align-items: center; gap: 18px; margin: 8px 0 30px; }
+.account-name { margin: 0 0 4px; font: 700 26px/1 var(--display); }
+.account-email { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.account-actions { margin-top: 26px; padding-top: 22px; border-top: 1px solid #cdd0cd; }
+
+/* File picker */
+.file-drop { min-height: 96px; position: relative; display: grid; place-content: center; gap: 6px; padding: 18px; border: 1.5px dashed #b9bfc4; background: white; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+.file-drop:hover,.file-drop:focus-within { border-color: var(--blue); background: #f2f7fc; }
+.file-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-drop-title { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; overflow-wrap: anywhere; }
+.file-drop small { color: var(--muted); font-size: 11px; }
+
+/* Fan gallery */
+.gallery-section { padding-top: 88px; padding-bottom: 96px; }
+.gallery-upload { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.5fr) auto; align-items: end; gap: 16px; margin-bottom: 28px; padding: 20px; background: #e9e8e2; }
+.gallery-upload .file-drop { min-height: 50px; padding: 10px 14px; }
+.gallery-upload .login-submit { padding: 0 24px; }
+.gallery-message { grid-column: 1 / -1; margin: 0; }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.gallery-card { margin: 0; background: white; animation: rise-in .45s both; }
+.gallery-card img { width: 100%; aspect-ratio: 1; display: block; object-fit: cover; background: #d0d3d2; }
+.gallery-caption-text { display: grid; gap: 6px; padding: 12px 14px 14px; font-size: 13px; line-height: 1.45; }
+.gallery-caption-text small { color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .9px; }
+
+@media (max-width: 760px) {
+  .header-profile-name { display: none; }
+  .gallery-section { padding-top: 65px; padding-bottom: 67px; }
+  .gallery-upload { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .gallery-caption-text { padding: 10px; font-size: 12px; }
+  .account-profile { gap: 14px; }
+  .avatar-large { width: 64px; height: 64px; font-size: 22px; }
+}
+
 @media (max-width: 760px) {
   .header-actions { margin-left: auto; gap: 12px; }
   .header-actions .header-cta { margin: 0 16px 0 0; }
-  .header-account small { display: none; }
   .header-account { font-size: 8px; }
   .login-layout { grid-template-columns: minmax(0, 1fr); min-height: calc(100vh - 26px); }
   .login-visual { min-height: 290px; }

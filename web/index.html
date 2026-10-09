@@ -18,7 +18,7 @@
     <a class="wordmark" href="#top" aria-label="The Bridge home"><span class="mark">TB</span><span>THE<br>BRIDGE</span></a>
     <button class="menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="main-nav"><span></span><span></span></button>
     <nav id="main-nav" class="main-nav" aria-label="Main navigation">
-      <a class="active" href="#matchday">MATCHDAY</a><a href="#fixtures">FIXTURES</a><a href="#journal">JOURNAL</a><a href="#squad">THE SQUAD</a>
+      <a class="active" href="#matchday">MATCHDAY</a><a href="#fixtures">FIXTURES</a><a href="#journal">JOURNAL</a><a href="#gallery">GALLERY</a><a href="#squad">THE SQUAD</a>
     </nav>
     <div class="header-actions">
       <a class="header-account" id="header-account" href="/login.html">SIGN IN</a>
@@ -60,6 +60,21 @@
         <div class="section-heading journal-heading"><div><p class="eyebrow dark-eyebrow">FROM THE TERRACES</p><h2>THE JOURNAL<span class="blue-period">.</span></h2></div><a class="text-link" href="#latest">ALL STORIES <span>↗</span></a></div>
         <div class="story-grid" id="story-grid"><div class="loading-line">Loading stories…</div></div>
       </div>
+    </section>
+
+    <section class="gallery-section section-wrap" id="gallery">
+      <div class="section-heading"><div><p class="eyebrow dark-eyebrow">FROM YOUR LENS</p><h2>FAN GALLERY<span class="blue-period">.</span></h2></div><a class="text-link" href="/login.html#signup" id="gallery-cta">SHARE YOUR PHOTOS <span>↗</span></a></div>
+      <form class="gallery-upload" id="gallery-upload" novalidate hidden>
+        <label class="file-drop gallery-file">
+          <input type="file" name="image" id="gallery-input" accept="image/jpeg,image/png,image/gif,image/webp">
+          <span class="file-drop-title" id="gallery-file-name">CHOOSE A MATCHDAY PHOTO</span>
+          <small>JPEG, PNG, GIF or WebP · up to 5 MB</small>
+        </label>
+        <label class="login-field gallery-caption"><span>CAPTION</span><input type="text" name="caption" id="gallery-caption" maxlength="140" placeholder="Where were you standing?"></label>
+        <button class="login-submit" type="submit" id="gallery-submit"><span id="gallery-submit-label">POST PHOTO</span> <span aria-hidden="true">↑</span></button>
+        <p class="login-error gallery-message" id="gallery-error" role="alert" hidden></p>
+      </form>
+      <div class="gallery-grid" id="gallery-grid" aria-live="polite"><div class="loading-line">Loading photos…</div></div>
     </section>
 
     <section class="squad-band" id="squad">
