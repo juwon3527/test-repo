@@ -1,0 +1,38 @@
+# Local stack: the app plus MySQL. Image uploads go to the S3 bucket named in
+# your shell's S3_BUCKET (with AWS_REGION and AWS credentials); leave it unset
+# and the site runs with uploads disabled.
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      MYSQL_DSN: thebridge:thebridge@tcp(db:3306)/thebridge
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: thebridge
+      MYSQL_USER: thebridge
+      MYSQL_PASSWORD: thebridge # local development only
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uthebridge", "-pthebridge"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mysql-data:

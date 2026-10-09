@@ -86,23 +86,130 @@ mainNav.addEventListener("click", (event) => {
 });
 
 loadMatchCentre();
+const maxImageBytes = 5 * 1024 * 1024;
+const galleryGrid = document.querySelector("#gallery-grid");
+const galleryForm = document.querySelector("#gallery-upload");
+const galleryError = document.querySelector("#gallery-error");
+let currentUser = null;
+
+function initials(name) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+}
+
+function makeAvatar(user, className) {
+  const avatar = makeElement("span", `avatar ${className}`);
+  avatar.setAttribute("aria-hidden", "true");
+  if (user.avatarUrl) {
+    const image = document.createElement("img");
+    image.src = user.avatarUrl;
+    image.alt = "";
+    avatar.append(image);
+  } else {
+    avatar.textContent = initials(user.name);
+  }
+  return avatar;
+}
+
+function renderGallery(photos) {
+  if (photos.length === 0) {
+    galleryGrid.replaceChildren(makeElement("p", "loading-line", "No photos yet. Be the first to share one."));
+    return;
+  }
+  galleryGrid.replaceChildren(...photos.map((photo, index) => {
+    const card = makeElement("figure", "gallery-card");
+    card.style.animationDelay = `${Math.min(index, 8) * 60}ms`;
+    const image = document.createElement("img");
+    image.src = photo.imageUrl;
+    image.alt = photo.caption || `Matchday photo shared by ${photo.author}`;
+    image.loading = "lazy";
+    const caption = makeElement("figcaption", "gallery-caption-text");
+    if (photo.caption) caption.append(makeElement("span", "", photo.caption));
+    caption.append(makeElement("small", "", `BY ${photo.author.toUpperCase()}`));
+    card.append(image, caption);
+    return card;
+  }));
+}
+
+async function loadGallery() {
+  try {
+    const response = await fetch("/api/gallery");
+    if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+    const data = await response.json();
+    renderGallery(data.photos);
+    return data.uploadsEnabled;
+  } catch (error) {
+    galleryGrid.replaceChildren(makeElement("p", "loading-line", "The gallery is unavailable right now."));
+    console.error(error);
+    return false;
+  }
+}
+
+function showGalleryError(message) {
+  galleryError.textContent = message;
+  galleryError.hidden = !message;
+}
+
+document.querySelector("#gallery-input").addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  document.querySelector("#gallery-file-name").textContent = file ? file.name : "CHOOSE A MATCHDAY PHOTO";
+  showGalleryError(file && file.size > maxImageBytes ? "Images must be 5 MB or smaller." : "");
+});
+
+galleryForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const file = document.querySelector("#gallery-input").files[0];
+  if (!file) return showGalleryError("Choose an image to upload.");
+  if (file.size > maxImageBytes) return showGalleryError("Images must be 5 MB or smaller.");
+
+  const submit = document.querySelector("#gallery-submit");
+  const label = document.querySelector("#gallery-submit-label");
+  showGalleryError("");
+  submit.disabled = true;
+  label.textContent = "POSTING…";
+  try {
+    const body = new FormData();
+    body.append("caption", document.querySelector("#gallery-caption").value);
+    body.append("image", file);
+    const response = await fetch("/api/gallery", { method: "POST", body });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Upload failed. Please try again.");
+    galleryForm.reset();
+    document.querySelector("#gallery-file-name").textContent = "CHOOSE A MATCHDAY PHOTO";
+    await loadGallery();
+  } catch (error) {
+    showGalleryError(error.message);
+  } finally {
+    submit.disabled = false;
+    label.textContent = "POST PHOTO";
+  }
+});
+
 async function loadAccount() {
-  const account = document.querySelector("#header-account");
   try {
     const response = await fetch("/api/session");
     const data = await response.json();
     if (!data.authenticated) return;
-    const signOut = makeElement("button", "header-account", "SIGN OUT");
-    signOut.type = "button";
-    signOut.prepend(makeElement("small", "", data.name.toUpperCase()));
-    signOut.addEventListener("click", async () => {
-      await fetch("/api/logout", { method: "POST" });
-      window.location.reload();
-    });
-    account.replaceWith(signOut);
+    currentUser = data;
+    const account = makeElement("a", "header-account header-profile");
+    account.href = "/account.html";
+    account.setAttribute("aria-label", `Your account: ${data.name}`);
+    account.append(makeAvatar(data, "avatar-small"), makeElement("span", "header-profile-name", data.name.split(" ")[0].toUpperCase()));
+    document.querySelector("#header-account").replaceWith(account);
   } catch (error) {
     console.error(error);
   }
 }
 
-loadAccount();
+async function loadMembersArea() {
+  const [, uploadsEnabled] = await Promise.all([loadAccount(), loadGallery()]);
+  const cta = document.querySelector("#gallery-cta");
+  if (currentUser && uploadsEnabled) {
+    galleryForm.hidden = false;
+    cta.hidden = true;
+  } else if (currentUser) {
+    cta.replaceChildren(document.createTextNode("UPLOADS COMING SOON"));
+    cta.removeAttribute("href");
+  }
+}
+
+loadMembersArea();

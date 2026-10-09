@@ -3,130 +3,49 @@ package main
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
-	"os"
+	"net/mail"
+	"net/url"
 	"strings"
-	"sync"
 	"time"
+	"unicode/utf8"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
-	sessionCookie = "tb_session"
-	sessionTTL    = 12 * time.Hour
+	sessionCookie     = "tb_session"
+	sessionTTL        = 7 * 24 * time.Hour
+	minPasswordLength = 8
+	maxPasswordLength = 72 // bcrypt ignores anything longer
 )
 
-type Account struct {
-	Email        string
-	Name         string
-	passwordHash [sha256.Size]byte
+// dummyHash is checked when an email isn't registered, so a failed login
+// takes the same time whether or not the account exists.
+var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("not-a-real-password"), bcrypt.DefaultCost)
+
+type sessionResponse struct {
+	Authenticated bool   `json:"authenticated"`
+	Email         string `json:"email,omitempty"`
+	Name          string `json:"name,omitempty"`
+	AvatarURL     string `json:"avatarUrl,omitempty"`
 }
 
-type Session struct {
-	Email   string
-	Name    string
-	Expires time.Time
+func signedIn(user User) sessionResponse {
+	return sessionResponse{Authenticated: true, Email: user.Email, Name: user.Name, AvatarURL: mediaPath(user.AvatarKey)}
 }
 
-type Auth struct {
-	salt     []byte
-	accounts map[string]Account
-
-	mu       sync.Mutex
-	sessions map[string]Session
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
 }
 
-// newAuth creates the demo account store. Credentials come from
-// THE_BRIDGE_EMAIL and THE_BRIDGE_PASSWORD, falling back to demo values.
-func newAuth() *Auth {
-	salt := make([]byte, 16)
-	if _, err := rand.Read(salt); err != nil {
-		panic(err)
-	}
-	a := &Auth{salt: salt, accounts: map[string]Account{}, sessions: map[string]Session{}}
-	a.addAccount(envOr("THE_BRIDGE_EMAIL", "fan@thebridge.test"), "Blue Fan", envOr("THE_BRIDGE_PASSWORD", "bluesince1905"))
-	return a
-}
-
-func envOr(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
-
-func (a *Auth) hash(password string) [sha256.Size]byte {
-	return sha256.Sum256(append(append([]byte{}, a.salt...), password...))
-}
-
-func (a *Auth) addAccount(email, name, password string) {
-	email = strings.ToLower(strings.TrimSpace(email))
-	a.accounts[email] = Account{Email: email, Name: name, passwordHash: a.hash(password)}
-}
-
-func (a *Auth) verify(email, password string) (Account, bool) {
-	account, ok := a.accounts[strings.ToLower(strings.TrimSpace(email))]
-	// Hash even for unknown emails so response timing doesn't reveal which accounts exist.
-	got := a.hash(password)
-	if !ok {
-		return Account{}, false
-	}
-	return account, subtle.ConstantTimeCompare(got[:], account.passwordHash[:]) == 1
-}
-
-func (a *Auth) createSession(account Account) (string, Session) {
-	buf := make([]byte, 32)
-	if _, err := rand.Read(buf); err != nil {
-		panic(err)
-	}
-	token := base64.RawURLEncoding.EncodeToString(buf)
-	session := Session{Email: account.Email, Name: account.Name, Expires: time.Now().Add(sessionTTL)}
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	for t, s := range a.sessions {
-		if time.Now().After(s.Expires) {
-			delete(a.sessions, t)
-		}
-	}
-	a.sessions[token] = session
-	return token, session
-}
-
-func (a *Auth) session(r *http.Request) (Session, bool) {
-	cookie, err := r.Cookie(sessionCookie)
-	if err != nil {
-		return Session{}, false
-	}
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	session, ok := a.sessions[cookie.Value]
-	if !ok || time.Now().After(session.Expires) {
-		delete(a.sessions, cookie.Value)
-		return Session{}, false
-	}
-	return session, true
-}
-
-func (a *Auth) endSession(r *http.Request) {
-	if cookie, err := r.Cookie(sessionCookie); err == nil {
-		a.mu.Lock()
-		delete(a.sessions, cookie.Value)
-		a.mu.Unlock()
-	}
-}
-
-func setSessionCookie(w http.ResponseWriter, r *http.Request, value string, maxAge int) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookie,
-		Value:    value,
-		Path:     "/",
-		MaxAge:   maxAge,
-		HttpOnly: true,
-		Secure:   r.TLS != nil,
-		SameSite: http.SameSiteLaxMode,
-	})
+func hashToken(token string) []byte {
+	sum := sha256.Sum256([]byte(token))
+	return sum[:]
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -136,43 +55,170 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	json.NewEncoder(w).Encode(v)
 }
 
-type sessionResponse struct {
-	Authenticated bool   `json:"authenticated"`
-	Email         string `json:"email,omitempty"`
-	Name          string `json:"name,omitempty"`
+func writeError(w http.ResponseWriter, status int, message string) {
+	writeJSON(w, status, map[string]string{"error": message})
 }
 
-func (a *Auth) register(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}
-		r.Body = http.MaxBytesReader(w, r.Body, 4<<10)
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Email == "" || body.Password == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Enter your email and password."})
-			return
-		}
-		account, ok := a.verify(body.Email, body.Password)
-		if !ok {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "That email and password don't match."})
-			return
-		}
-		token, session := a.createSession(account)
-		setSessionCookie(w, r, token, int(sessionTTL.Seconds()))
-		writeJSON(w, http.StatusOK, sessionResponse{Authenticated: true, Email: session.Email, Name: session.Name})
+func decodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, 4<<10)
+	return json.NewDecoder(r.Body).Decode(v) == nil
+}
+
+func setSessionCookie(w http.ResponseWriter, r *http.Request, value string, maxAge int) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookie,
+		Value:    value,
+		Path:     "/",
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
+		SameSite: http.SameSiteLaxMode,
 	})
-	mux.HandleFunc("POST /api/logout", func(w http.ResponseWriter, r *http.Request) {
-		a.endSession(r)
-		setSessionCookie(w, r, "", -1)
-		w.WriteHeader(http.StatusNoContent)
-	})
-	mux.HandleFunc("GET /api/session", func(w http.ResponseWriter, r *http.Request) {
-		session, ok := a.session(r)
-		if !ok {
-			writeJSON(w, http.StatusOK, sessionResponse{})
-			return
+}
+
+func (a *App) startSession(w http.ResponseWriter, r *http.Request, user User) error {
+	buf := make([]byte, 32)
+	rand.Read(buf)
+	token := base64.RawURLEncoding.EncodeToString(buf)
+	if err := a.store.CreateSession(r.Context(), hashToken(token), user.ID, time.Now().Add(sessionTTL)); err != nil {
+		return err
+	}
+	setSessionCookie(w, r, token, int(sessionTTL.Seconds()))
+	return nil
+}
+
+// currentUser returns the signed-in user for the request, if any.
+func (a *App) currentUser(r *http.Request) (User, bool) {
+	cookie, err := r.Cookie(sessionCookie)
+	if err != nil {
+		return User{}, false
+	}
+	user, err := a.store.SessionUser(r.Context(), hashToken(cookie.Value), time.Now())
+	if err != nil {
+		if !errors.Is(err, ErrNotFound) {
+			log.Printf("look up session: %v", err)
 		}
-		writeJSON(w, http.StatusOK, sessionResponse{Authenticated: true, Email: session.Email, Name: session.Name})
+		return User{}, false
+	}
+	return user, true
+}
+
+func validateSignup(name, email, password string) string {
+	switch {
+	case name == "" || utf8.RuneCountInString(name) > 80:
+		return "Enter a name of up to 80 characters."
+	case len(email) > 254:
+		return "Enter a valid email address."
+	case len(password) < minPasswordLength:
+		return "Use a password of at least 8 characters."
+	case len(password) > maxPasswordLength:
+		return "Use a password of at most 72 characters."
+	}
+	if address, err := mail.ParseAddress(email); err != nil || address.Address != email {
+		return "Enter a valid email address."
+	}
+	return ""
+}
+
+func (a *App) handleSignup(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Name     string `json:"name"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if !decodeJSON(w, r, &body) {
+		writeError(w, http.StatusBadRequest, "Fill in your name, email and password.")
+		return
+	}
+	name, email := strings.TrimSpace(body.Name), normalizeEmail(body.Email)
+	if problem := validateSignup(name, email, body.Password); problem != "" {
+		writeError(w, http.StatusBadRequest, problem)
+		return
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Printf("hash password: %v", err)
+		writeError(w, http.StatusInternalServerError, "Could not create your account. Please try again.")
+		return
+	}
+	user, err := a.store.CreateUser(r.Context(), email, name, hash)
+	if errors.Is(err, ErrEmailTaken) {
+		writeError(w, http.StatusConflict, "An account with that email already exists. Try signing in.")
+		return
+	}
+	if err == nil {
+		err = a.startSession(w, r, user)
+	}
+	if err != nil {
+		log.Printf("sign up: %v", err)
+		writeError(w, http.StatusInternalServerError, "Could not create your account. Please try again.")
+		return
+	}
+	writeJSON(w, http.StatusCreated, signedIn(user))
+}
+
+func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if !decodeJSON(w, r, &body) || body.Email == "" || body.Password == "" {
+		writeError(w, http.StatusBadRequest, "Enter your email and password.")
+		return
+	}
+	user, err := a.store.UserByEmail(r.Context(), normalizeEmail(body.Email))
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		log.Printf("log in: %v", err)
+		writeError(w, http.StatusInternalServerError, "Sign in failed. Please try again.")
+		return
+	}
+	hash := user.PasswordHash
+	if err != nil {
+		hash = dummyHash
+	}
+	if bcrypt.CompareHashAndPassword(hash, []byte(body.Password)) != nil || err != nil {
+		writeError(w, http.StatusUnauthorized, "That email and password don't match.")
+		return
+	}
+	if err := a.startSession(w, r, user); err != nil {
+		log.Printf("start session: %v", err)
+		writeError(w, http.StatusInternalServerError, "Sign in failed. Please try again.")
+		return
+	}
+	writeJSON(w, http.StatusOK, signedIn(user))
+}
+
+func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
+	if cookie, err := r.Cookie(sessionCookie); err == nil {
+		if err := a.store.DeleteSession(r.Context(), hashToken(cookie.Value)); err != nil {
+			log.Printf("delete session: %v", err)
+		}
+	}
+	setSessionCookie(w, r, "", -1)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) handleSession(w http.ResponseWriter, r *http.Request) {
+	user, ok := a.currentUser(r)
+	if !ok {
+		writeJSON(w, http.StatusOK, sessionResponse{})
+		return
+	}
+	writeJSON(w, http.StatusOK, signedIn(user))
+}
+
+// sameOrigin rejects state-changing requests sent from other sites. The
+// SameSite cookie already blocks most of these; this is a second layer.
+func sameOrigin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			if origin := r.Header.Get("Origin"); origin != "" {
+				if u, err := url.Parse(origin); err != nil || u.Host != r.Host {
+					writeError(w, http.StatusForbidden, "Cross-site request blocked.")
+					return
+				}
+			}
+		}
+		next.ServeHTTP(w, r)
 	})
 }

@@ -10,7 +10,7 @@ import (
 
 func TestMatchCentreEndpoint(t *testing.T) {
 	response := httptest.NewRecorder()
-	newServer().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/match-centre", nil))
+	newServer(newTestApp()).ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/match-centre", nil))
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusOK)
@@ -29,7 +29,7 @@ func TestMatchCentreEndpoint(t *testing.T) {
 
 func TestHomePageIsServed(t *testing.T) {
 	response := httptest.NewRecorder()
-	newServer().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
+	newServer(newTestApp()).ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusOK)
