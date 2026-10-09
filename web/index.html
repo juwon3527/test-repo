@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0346d0">
+  <meta name="description" content="The Bridge: an independent Chelsea fan match centre, fixture list and football journal.">
+  <title>The Bridge — Chelsea, matchday to matchday</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="demo-ribbon"><span class="status-dot"></span> INDEPENDENT FAN SITE <span class="ribbon-divider">/</span> MATCH CENTRE DEMO DATA</div>
+  <header class="site-header">
+    <a class="wordmark" href="#top" aria-label="The Bridge home"><span class="mark">TB</span><span>THE<br>BRIDGE</span></a>
+    <button class="menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="main-nav"><span></span><span></span></button>
+    <nav id="main-nav" class="main-nav" aria-label="Main navigation">
+      <a class="active" href="#matchday">MATCHDAY</a><a href="#fixtures">FIXTURES</a><a href="#journal">JOURNAL</a><a href="#squad">THE SQUAD</a>
+    </nav>
+    <a class="header-cta" href="#fixtures">NEXT MATCH <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main id="top">
+    <section class="match-hero" id="matchday" aria-labelledby="hero-title">
+      <div class="hero-image" role="img" aria-label="Football ground under the matchday lights"></div>
+      <div class="hero-grid"></div>
+      <div class="hero-content">
+        <p class="eyebrow"><span class="eyebrow-line"></span> WEST LONDON. BLUE BLOOD.</p>
+        <h1 id="hero-title">THIS IS<br><span>OUR</span> BRIDGE.</h1>
+        <p class="hero-copy">Every match has a moment. This is where we remember them.</p>
+        <a class="round-link" href="#latest" aria-label="Read the latest stories"><span>THE LATEST</span><b aria-hidden="true">↓</b></a>
+      </div>
+      <div class="hero-caption"><span>51°28'54.0"N</span><span>STAMFORD BRIDGE · LONDON</span></div>
+      <div class="hero-index">01 <span>/</span> 03</div>
+      <div class="match-strip" aria-live="polite">
+        <div class="strip-label"><span class="live-pip"></span><span id="match-status">LAST MATCH</span><small>PREMIER LEAGUE</small></div>
+        <div class="club-score home-score"><span class="club-monogram">CHE</span><span class="club-name" id="home-name">CHELSEA</span><strong id="home-score">2</strong></div>
+        <div class="score-colon">:</div>
+        <div class="club-score away-score"><strong id="away-score">1</strong><span class="club-monogram opponent-mark" id="away-code">ARS</span><span class="club-name" id="away-name">ARSENAL</span></div>
+        <div class="strip-venue"><span id="match-venue">STAMFORD BRIDGE</span><small>SATURDAY · 3:00 PM</small></div>
+        <a class="match-report" href="#journal" aria-label="Go to match report">↗</a>
+      </div>
+    </section>
+
+    <section class="ticker" aria-label="Club motto"><div class="ticker-track"><span>KEEP THE BLUE FLAG FLYING HIGH</span><i>✳</i><span>KEEP THE BLUE FLAG FLYING HIGH</span><i>✳</i><span>KEEP THE BLUE FLAG FLYING HIGH</span><i>✳</i></div></section>
+
+    <section class="fixtures-section section-wrap" id="fixtures">
+      <div class="section-heading"><div><p class="eyebrow dark-eyebrow">THE ROAD AHEAD</p><h2>UP NEXT<span class="blue-period">.</span></h2></div><a class="text-link" href="#fixtures">FULL FIXTURE LIST <span>↗</span></a></div>
+      <div class="fixture-list" id="fixture-list" aria-live="polite"><div class="loading-line">Loading fixtures…</div></div>
+    </section>
+
+    <section class="journal-section" id="journal">
+      <div class="section-wrap journal-inner" id="latest">
+        <div class="section-heading journal-heading"><div><p class="eyebrow dark-eyebrow">FROM THE TERRACES</p><h2>THE JOURNAL<span class="blue-period">.</span></h2></div><a class="text-link" href="#latest">ALL STORIES <span>↗</span></a></div>
+        <div class="story-grid" id="story-grid"><div class="loading-line">Loading stories…</div></div>
+      </div>
+    </section>
+
+    <section class="squad-band" id="squad">
+      <div class="squad-photo" role="img" aria-label="Players walking out onto the pitch"></div>
+      <div class="squad-copy"><p class="eyebrow"><span class="eyebrow-line"></span> ONE BADGE. ONE CITY.</p><h2>MADE OF<br>BLUE.</h2><p>From the academy to the Shed End, the shirt means something. Get closer to the people who wear it.</p><a class="outline-link" href="#squad">MEET THE SQUAD <span>↗</span></a></div>
+      <div class="squad-number">1905</div>
+    </section>
+  </main>
+  <footer class="site-footer"><a class="wordmark footer-mark" href="#top"><span class="mark">TB</span><span>THE<br>BRIDGE</span></a><p>INDEPENDENT BY NATURE. BLUE BY HEART.</p><span class="footer-note">FAN-MADE CONCEPT · NOT AFFILIATED WITH CHELSEA FC</span><a class="back-top" href="#top" aria-label="Back to top">↑</a></footer>
+</body>
+</html>
